@@ -1,0 +1,2 @@
+<taf-app:container:ghcr.io/taffish/kaiju:1.10.2-r1>
+kaiju ::*ARGV*::

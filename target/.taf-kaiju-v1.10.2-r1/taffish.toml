@@ -1,0 +1,50 @@
+[package]
+name = "kaiju"
+kind = "tool"
+version = "1.10.2"
+release = 1
+license = "Apache-2.0"
+main = "src/main.taf"
+
+[repository]
+url = "https://github.com/taffish/kaiju"
+
+[command]
+name = "taf-kaiju"
+
+[runtime]
+pipe = true
+command_mode = true
+
+[container]
+image = "ghcr.io/taffish/kaiju:1.10.2-r1"
+dockerfile = "docker/Dockerfile"
+build_platforms = "linux/amd64,linux/arm64"
+
+[meta]
+domain = "bio"
+categories = ["metagenomics", "taxonomy-classification", "microbiome", "protein-search", "database-indexing"]
+keywords = ["Kaiju", "metagenomics", "metatranscriptomics", "taxonomic classification", "protein database", "FM-index", "NCBI taxonomy", "KaijuP", "KaijuX", "Krona"]
+description = "Kaiju 1.10.2 runtime for protein-level taxonomic classification, database construction, and taxonomy-aware result conversion."
+
+[upstream]
+name = "Kaiju"
+type = "github"
+repo = "bioinformatics-centre/kaiju"
+homepage = "https://bioinformatics-centre.github.io/kaiju/"
+manual = "https://github.com/bioinformatics-centre/kaiju/blob/v1.10.2/README.md"
+release_url = "https://github.com/bioinformatics-centre/kaiju/releases/tag/v1.10.2"
+downloads = "https://github.com/bioinformatics-centre/kaiju/archive/refs/tags/v1.10.2.tar.gz"
+version = "1.10.2"
+license = "GPL-3.0-or-later"
+citation = "Menzel, Ng, and Krogh 2016, Fast and sensitive taxonomic classification for metagenomics with Kaiju, Nature Communications 7:11257"
+doi = "10.1038/ncomms11257"
+pmid = "27071849"
+watch = "tags"
+strip_prefix = "v"
+
+[smoke]
+backend = "docker"
+timeout = 300
+exist = ["kaiju", "kaiju-multi", "kaijup", "kaijux", "kaiju2krona", "kaiju2table", "kaiju-addTaxonNames", "kaiju-mergeOutputs", "kaiju-convertNR", "kaiju-convertRefSeq", "kaiju-mkbwt", "kaiju-mkfmi", "kaiju-makedb", "kaiju-gbk2faa.pl", "perl", "curl", "wget", "awk", "xargs", "tar", "gzip", "gunzip", "bzip2", "bunzip2", "xz", "unxz", "find", "dirname", "mkdir", "cat", "wc", "seq", "grep", "sed", "sort", "sh", "ldd"]
+test = ["grep -F 'source_sha256=8d6d10c583799b040b77f28907c6b554363199e912681b3007b93ae7d817d172' /opt/kaiju/share/doc/kaiju/source.txt >/dev/null && grep -F 'upstream_commit=9b70819cf119b0874ab9b0100ed36b1fff41b7ea' /opt/kaiju/share/doc/kaiju/source.txt >/dev/null && grep -F 'runtime_banner_version=1.10.1' /opt/kaiju/share/doc/kaiju/source.txt >/dev/null", "/opt/kaiju/share/testdata/kaiju-smoke.sh interfaces /tmp/taf-kaiju-index-interfaces-$$", "/opt/kaiju/share/testdata/kaiju-smoke.sh buildtime /tmp/taf-kaiju-index-buildtime-$$", "/opt/kaiju/share/testdata/kaiju-smoke.sh classify /tmp/taf-kaiju-index-classify-$$", "/opt/kaiju/share/testdata/kaiju-smoke.sh postprocess /tmp/taf-kaiju-index-postprocess-$$", "/opt/kaiju/share/testdata/kaiju-smoke.sh index /tmp/taf-kaiju-index-build-$$", "/opt/kaiju/share/testdata/kaiju-smoke.sh gbk /tmp/taf-kaiju-index-gbk-$$"]
