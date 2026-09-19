@@ -1,8 +1,8 @@
-FROM debian:12-slim AS builder
+FROM debian:12-slim@sha256:3783cc01769c7b2b1b83a5c5ad96c815348e28ed7da68e2e3687004faa906251 AS builder
 
-ARG KAIJU_VERSION=1.10.2
-ARG KAIJU_COMMIT=9b70819cf119b0874ab9b0100ed36b1fff41b7ea
-ARG KAIJU_SHA256=8d6d10c583799b040b77f28907c6b554363199e912681b3007b93ae7d817d172
+ARG KAIJU_VERSION=1.10.3
+ARG KAIJU_COMMIT=a36cd21d1c04d17a4f7e3744c17e8e8508e69e3b
+ARG KAIJU_SHA256=712dc0b73944349ddf0e49b61e780864244e901ca89cd5c80180a97130a724d5
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN set -eux; \
@@ -69,22 +69,22 @@ RUN set -eux; \
       echo "source_sha256=${KAIJU_SHA256}"; \
       echo "upstream_tag=v${KAIJU_VERSION}"; \
       echo "upstream_commit=${KAIJU_COMMIT}"; \
-      echo "runtime_banner_version=1.10.1"; \
-      echo "release_identity=v1.10.2 implements -X in kaijup and kaijux"; \
+      echo "runtime_banner_version=1.10.3"; \
+      echo "release_identity=v1.10.3 fixes RefSeq URLs and adds viral proteins to refseq_nr"; \
       echo "build=official C/C++11 source makefile with explicit signed-char semantics"; \
       echo "upstream_license=GPL-3.0-or-later"; \
       echo "bundled_zstr_license=MIT"; \
       echo "bundled_ncbi_blast_core_notice=public-domain notice retained"; \
     } > /opt/kaiju/share/doc/kaiju/source.txt
 
-FROM debian:12-slim
+FROM debian:12-slim@sha256:3783cc01769c7b2b1b83a5c5ad96c815348e28ed7da68e2e3687004faa906251
 
 LABEL org.opencontainers.image.title="kaiju" \
       org.opencontainers.image.description="TAFFISH wrapper for Kaiju protein-level taxonomic classification" \
       org.opencontainers.image.source="https://github.com/bioinformatics-centre/kaiju" \
       org.opencontainers.image.licenses="Apache-2.0"
 
-ARG KAIJU_VERSION=1.10.2
+ARG KAIJU_VERSION=1.10.3
 ENV DEBIAN_FRONTEND=noninteractive \
     PATH=/opt/kaiju/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
@@ -104,6 +104,7 @@ RUN set -eux; \
             libio-compress-perl \
             libstdc++6 \
             perl \
+            python3 \
             sed \
             tar \
             wget \
@@ -120,12 +121,16 @@ RUN set -eux; \
 
 COPY --from=builder /opt/kaiju /opt/kaiju
 COPY docker/kaiju-smoke.sh /opt/kaiju/share/testdata/kaiju-smoke.sh
+COPY docker/kaiju-db.py /opt/kaiju/bin/kaiju-db
+COPY docker/kaiju-resource-smoke.py /opt/kaiju/share/testdata/kaiju-resource-smoke.py
 
 RUN set -eux; \
     chmod 0755 /opt/kaiju/share/testdata/kaiju-smoke.sh; \
-    grep -F "source_sha256=8d6d10c583799b040b77f28907c6b554363199e912681b3007b93ae7d817d172" \
+    chmod 0755 /opt/kaiju/bin/kaiju-db; \
+    kaiju-db --version; \
+    grep -F "source_sha256=712dc0b73944349ddf0e49b61e780864244e901ca89cd5c80180a97130a724d5" \
       /opt/kaiju/share/doc/kaiju/source.txt >/dev/null; \
-    kaiju -h 2>&1 | grep -Fx "Kaiju 1.10.1" >/dev/null; \
+    kaiju -h 2>&1 | grep -Fx "Kaiju 1.10.3" >/dev/null; \
     kaijup -h 2>&1 | grep -F "Disable SEG low complexity filter" >/dev/null; \
     kaijux -h 2>&1 | grep -F "Disable SEG low complexity filter" >/dev/null; \
     for name in \

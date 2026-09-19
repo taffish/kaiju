@@ -6,7 +6,7 @@ tmp="${2:-/tmp/taf-kaiju-smoke-$$}"
 
 if [ "${mode}" = "all" ]; then
     for part in interfaces buildtime classify postprocess index gbk; do
-        "$0" "${part}" "${tmp}/${part}"
+        "$0" "${part}" "${tmp}-${part}"
     done
     exit 0
 fi
@@ -19,9 +19,21 @@ case "${tmp}" in
         ;;
 esac
 
-rm -rf "${tmp}"
-mkdir -p "${tmp}"
-trap 'rm -rf "${tmp}"' EXIT HUP INT TERM
+tmp=$(mktemp -d "${tmp}.XXXXXX")
+cleanup() {
+    code=$?
+    trap - EXIT
+    if [ "$code" -ne 0 ]; then
+        echo "kaiju-smoke: stage=${mode} exit=${code}" >&2
+        find "$tmp" -name '*.log' -type f -exec tail -n 60 {} \; >&2
+    fi
+    rm -rf "${tmp}"
+    exit "$code"
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+trap 'exit 129' HUP
 cd "${tmp}"
 
 write_taxonomy() {
@@ -74,15 +86,8 @@ prepare_fixture() {
 }
 
 build_tiny_index() {
-    if ! kaiju-mkbwt -n 2 -a ACDEFGHIKLMNPQRSTVWY -o tiny proteins.faa \
-      > mkbwt.log 2>&1; then
-        cat mkbwt.log >&2
-        return 1
-    fi
-    if ! kaiju-mkfmi tiny > mkfmi.log 2>&1; then
-        cat mkfmi.log >&2
-        return 1
-    fi
+    kaiju-mkbwt -n 2 -a ACDEFGHIKLMNPQRSTVWY -o tiny proteins.faa > mkbwt.log 2>&1
+    kaiju-mkfmi tiny > mkfmi.log 2>&1
     test -s tiny.fmi
 }
 
@@ -94,7 +99,7 @@ assert_classified() {
 
 case "${mode}" in
     interfaces)
-        kaiju -h 2>&1 | grep -Fx 'Kaiju 1.10.1' >/dev/null
+        kaiju -h 2>&1 | grep -Fx 'Kaiju 1.10.3' >/dev/null
         kaiju -h 2>&1 | grep -F 'Name of database (.fmi) file' >/dev/null
         kaiju-multi -h 2>&1 | grep -F 'List of input files containing reads' >/dev/null
         kaijup -h 2>&1 | grep -F 'Disable SEG low complexity filter' >/dev/null
@@ -216,8 +221,17 @@ EOF
         grep -Fx '>TEST_1_562' converted.faa >/dev/null
         grep -Fx 'ACDEFGHIKLMNPQRSTVWYACDEFGHIKLMNPQRSTVWY' converted.faa >/dev/null
         ;;
+    fixture)
+        prepare_fixture
+        build_tiny_index
+        # Explicit test-only export into an existing caller-owned directory.
+        test -n "${3:-}"
+        test -d "$3"
+        cp tiny.fmi nodes.dmp names.dmp protein-query.faa dna-query.fna proteins.faa "$3/"
+        ;;
     *)
         echo "usage: kaiju-smoke.sh {interfaces|buildtime|classify|postprocess|index|gbk|all} [tmpdir]" >&2
         exit 2
         ;;
 esac
+echo "kaiju-smoke: stage=${mode} PASS"

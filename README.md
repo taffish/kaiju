@@ -1,319 +1,261 @@
-# kaiju
+# taf-kaiju
 
-`kaiju` packages the complete Kaiju command-line suite for TAFFISH. Kaiju
-classifies metagenomic or metatranscriptomic reads by translating nucleotide
-sequences and searching a protein FM-index against the NCBI taxonomy.
+`taf-kaiju` packages [Kaiju](https://github.com/bioinformatics-centre/kaiju),
+a CPU protein-level metagenomic classifier, for TAFFISH.
 
-## Package Identity
-
-- Name: `kaiju`
-- Command: `taf-kaiju`
-- Kind: `tool`
-- TAFFISH version: `1.10.2-r1`
-- Container image: `ghcr.io/taffish/kaiju:1.10.2-r1`
-- Upstream: [`bioinformatics-centre/kaiju`](https://github.com/bioinformatics-centre/kaiju)
-- Upstream release: `v1.10.2`
-- Upstream commit: `9b70819cf119b0874ab9b0100ed36b1fff41b7ea`
-- TAFFISH app license: `Apache-2.0`
-- Upstream license: `GPL-3.0-or-later`
+Package identity: tool `kaiju`, command `taf-kaiju`, version `1.10.3-r1`,
+image `ghcr.io/taffish/kaiju:1.10.3-r1`, native `linux/amd64,linux/arm64`.
+Packaging is Apache-2.0; upstream software is GPL-3.0-or-later.
 
 ## What This App Packages
 
-The image builds the official `v1.10.2` source release with its upstream
-C/C++11 Makefiles. It includes the classifier, database-index builders,
-taxonomy-aware result converters, the database download/build script, its
-Perl GenBank converter, and the data files required by `kaiju-makedb`.
+The complete upstream command suite built from unchanged v1.10.3 source,
+with explicit `-fsigned-char` on both architectures for BWT compatibility.
+The thin command-mode entry passes arguments directly to Kaiju. The separate
+`kaiju-db` helper installs fixed prebuilt members; it does not intercept
+classification, choose a biological database or download implicitly.
 
-No production reference database is embedded in the image. Kaiju database
-snapshots are large, change independently of the software, and determine much
-of the scientific result. Keep them as explicit project or site data.
+The [1.10.3 release](https://github.com/bioinformatics-centre/kaiju/releases/tag/v1.10.3)
+fixes RefSeq assembly URLs with trailing slashes and adds viral proteins to
+`refseq_nr`. Runtime now reports `Kaiju 1.10.3`; the earlier 1.10.2 tag still
+reported 1.10.1. Here `refseq_nr` means bacterial/archaeal nonredundant proteins
+plus viral proteins, not fungi/microbial eukaryotes. Upstream README/code agree,
+but the unchanged `kaiju-makedb --help` description still lists the latter.
+Record the actual database contents/date, not just that historical label.
 
-## Runtime Version Note
+## Scope and Container Contents
 
-The official `v1.10.2` tag still defines `KAIJUVERSION` as `1.10.1` in
-`src/version.hpp`, so upstream help banners honestly print `Kaiju 1.10.1`.
-This app does not patch that string. Release identity is instead fixed by the
-official `v1.10.2` tag, commit, source SHA256, and the release-specific `-X`
-implementation in both `kaijup` and `kaijux`.
+- Classification: `kaiju`, `kaiju-multi`; non-taxonomic queries: `kaijup`, `kaijux`.
+- Reports: `kaiju2table`, `kaiju2krona`, `kaiju-addTaxonNames`, `kaiju-mergeOutputs`.
+- Indexing/conversion: `kaiju-mkbwt`, `kaiju-mkfmi`, `kaiju-makedb`,
+  `kaiju-convertNR`, `kaiju-convertRefSeq`, `kaiju-gbk2faa.pl`, upstream taxon/exclusion lists.
+- Resources: `kaiju-db`, Python3, HTTPS curl and CA certificates.
+- Perl IO::Uncompress, wget, xargs/find, awk, coreutils, tar, gzip, bzip2, xz,
+  C++ runtime/zlib; upstream README/Quickstart and legal notices.
 
-The source archive SHA256 is:
+No production database, trained model, GPU runtime, GUI or service is bundled.
+Official source, README, Quickstart and companion links were inspected:
+the [original hosted Kaiju server shut down in 2024](https://bioinformatics-centre.github.io/kaiju/).
+Galaxy is an independent hosted platform, not a Kaiju GUI extra.
+`kaiju2krona` emits text for the independent Krona renderer (`taf-krona`),
+not an in-process GUI. No GUI ports, browser lifecycle or device flags apply.
 
-```text
-8d6d10c583799b040b77f28907c6b554363199e912681b3007b93ae7d817d172
-```
+## Installation and Command Mode
 
-## Scope
-
-This app supports:
-
-- single-end and paired-end nucleotide classification with `kaiju`
-- multi-sample classification with `kaiju-multi`
-- MEM and Greedy search modes, including the `-X` SEG-disable option
-- protein-query search with `kaijup`
-- translated nucleotide-query search without taxonomy assignment with `kaijux`
-- plain or gzip-compressed FASTA and FASTQ input
-- custom protein index construction with `kaiju-mkbwt` and `kaiju-mkfmi`
-- official database acquisition and construction with `kaiju-makedb`
-- Kaiju-to-Krona, summary-table, taxon-name, and merged-output helpers
-- NCBI NR/RefSeq conversion helpers and GenBank protein extraction
-
-This app does not choose a scientifically appropriate database, bundle a
-production database, download data during ordinary classification, or include
-Krona's HTML renderer. `kaiju2krona` creates Krona input; render that output
-with a separate Krona installation or `taf-krona` app.
-
-## Container Contents
-
-Classifiers:
-
-- `kaiju`
-- `kaiju-multi`
-- `kaijup`
-- `kaijux`
-
-Index and database tools:
-
-- `kaiju-mkbwt`
-- `kaiju-mkfmi`
-- `kaiju-makedb`
-- `kaiju-convertNR`
-- `kaiju-convertRefSeq`
-- `kaiju-gbk2faa.pl`
-
-Result tools:
-
-- `kaiju2table`
-- `kaiju2krona`
-- `kaiju-addTaxonNames`
-- `kaiju-mergeOutputs`
-
-The runtime also includes the download, compression, Perl, and POSIX shell
-utilities that the upstream `kaiju-makedb` script actually invokes.
-
-## Database Boundary
-
-Classification needs:
-
-- a protein FM-index such as `kaiju_db_nr.fmi`
-- the matching NCBI taxonomy `nodes.dmp`
-- `names.dmp` for name- and summary-producing helper commands
-
-### Download An Official Pre-Built Index
-
-1. Open the official [Kaiju index download page](https://bioinformatics-centre.github.io/kaiju/downloads.html).
-2. Choose the database and dated snapshot appropriate for the analysis.
-3. Download and unpack the archive in a persistent project directory.
-4. Record the database name, snapshot date, URL and checksums with the result.
-
-For example, the small dated virus snapshot currently listed upstream can be
-prepared with:
+After publication:
 
 ```sh
-mkdir -p kaiju-db
-curl -fL \
-  https://kaiju-idx.s3.eu-central-1.amazonaws.com/2024/kaiju_db_viruses_2024-08-15.tgz \
-  -o kaiju-db/kaiju_db_viruses_2024-08-15.tgz
-tar -xzf kaiju-db/kaiju_db_viruses_2024-08-15.tgz -C kaiju-db
-find kaiju-db -maxdepth 1 -type f -print
-```
-
-The extracted directory should contain an `.fmi` file plus matching
-`nodes.dmp` and `names.dmp` files.
-
-### Build From Current Upstream Sources
-
-Run `kaiju-makedb` from the persistent directory where downloads and generated
-indexes should remain:
-
-```sh
-mkdir -p kaiju-db-build
-cd kaiju-db-build
-taf-kaiju kaiju-makedb -s viruses -t 4
-```
-
-Valid source names in `v1.10.2` include `refseq`, `refseq_nr`, `refseq_ref`,
-`progenomes`, `nr`, `nr_euk`, `fungi`, `viruses`, `plasmids`, and `rvdb`.
-This command intentionally uses the network. Larger choices may require
-hundreds of gigabytes of disk and hundreds of gigabytes of RAM while building.
-
-### Build A Custom Protein Index
-
-Protein FASTA headers must end in a numeric NCBI taxon id, and sequences may
-contain only the standard 20 uppercase amino-acid letters:
-
-```sh
-taf-kaiju kaiju-mkbwt \
-  -n 8 -a ACDEFGHIKLMNPQRSTVWY -o custom proteins.faa
-taf-kaiju kaiju-mkfmi custom
-```
-
-This creates `custom.fmi`; supply compatible NCBI taxonomy files separately.
-
-Kaiju accepts database paths directly, so this app does not impose a fixed
-container database path or automatic mount policy. Keep reads and the database
-under the mounted project working directory, or explicitly mount a controlled
-shared database directory through the selected container backend.
-
-## Usage
-
-Show wrapper and upstream help:
-
-```sh
+taf update
+taf install kaiju 1.10.3-r1
 taf-kaiju --help
 taf-kaiju --version
-taf-kaiju -- -h
 taf-kaiju kaiju -h
 ```
 
-Classify single-end reads:
+Before publication, maintainers may use `taf install --from .` in the checkout.
+Wrapper `--help`, `--version`, `--compile` belong to TAFFISH. Use
+`taf-kaiju -- -h` for upstream help; Kaiju has no dedicated `--version`.
+A non-option first argument selects a container executable. Upstream Kaiju -h
+prints usage and intentionally exits 1; help markers and this exact status are
+tested without changing upstream behavior.
+
+## Usage, Inputs and Outputs
 
 ```sh
-taf-kaiju kaiju \
-  -t "$PWD/kaiju-db/nodes.dmp" \
-  -f "$PWD/kaiju-db/kaiju_db_viruses.fmi" \
-  -i reads.fastq.gz \
-  -o sample.kaiju.tsv \
-  -z 8
+taf-kaiju kaiju -t nodes.dmp -f database.fmi -i reads.fq.gz -o calls.tsv -z 8
+taf-kaiju kaiju -t nodes.dmp -f database.fmi -i R1.fq.gz -j R2.fq.gz -o paired.tsv
+taf-kaiju kaiju -p -t nodes.dmp -f database.fmi -i proteins.faa -o proteins.tsv
+taf-kaiju kaiju2table -t nodes.dmp -n names.dmp -r species -o abundance.tsv calls.tsv
+taf-kaiju kaiju-addTaxonNames -t nodes.dmp -n names.dmp -i calls.tsv -o named.tsv
+taf-kaiju kaiju2krona -t nodes.dmp -n names.dmp -i calls.tsv -o krona.tsv
+taf-kaiju kaijup -f database.fmi -i proteins.faa -o matches.tsv
+taf-kaiju kaijux -f database.fmi -i reads.fq.gz -o translated.tsv
+taf-kaiju kaiju-mkbwt -n 2 -a ACDEFGHIKLMNPQRSTVWY -o custom proteins.faa
+taf-kaiju kaiju-mkfmi custom
 ```
 
-Classify paired-end reads:
+Queries are FASTA/FASTQ (gzip accepted); `-p` means protein input. Paired files
+must correspond. Classification requires a compatible FMI and matching
+`nodes.dmp`; named reports require matching `names.dmp`. Custom protein reference
+IDs end in `_NCBI-taxid`; KaijuP/KaijuX non-taxonomic searches use sequence IDs.
+The FMI is reusable; BWT/SA build intermediates are not needed for classification.
+
+`calls.tsv` starts with C/U, read ID and taxon ID; verbose mode adds match details.
+`kaiju2table` writes abundance tables; Krona output is text, not HTML.
+`-z` controls threads; `-a mem|greedy`, `-e`, `-E`, `-m`, `-s` set search criteria;
+`-X` disables SEG. Reference/filter choices change scientific interpretation.
+Use new output paths: existing files may be overwritten. With spaces, preserve
+literal inner quotes for TAFFISH command reconstruction:
+`-i "'reads/query 1.faa'" -o "'results/calls 1.tsv'"`.
+
+## Fixed Resources and Personal/System-Wide Sharing
+
+The smallest reusable unit is **one selected dated FMI plus matching taxonomy**,
+not the whole evolving database family. Official members and disk/RAM estimates:
+[Kaiju downloads](https://bioinformatics-centre.github.io/kaiju/downloads.html).
+Custom project sequences remain user inputs; small bundled exclusion/taxon lists
+stay versioned inside the image. There are no trained models.
+
+The catalog does not supply an authenticated SHA256 manifest. Do not invent one
+or treat a multipart S3 ETag as SHA256. An administrator reviews one fixed official
+HTTPS acquisition and pins it locally, or receives an already reviewed recipe.
+First pin is trust-on-first-use under HTTPS/source review, **not an upstream
+signature**. Later installs require the recorded size/SHA256 and reject changed
+bytes even at the same URL.
+
+Select the dated URL from the official page and save the applicable data
+attribution/permission notice in `RESOURCE_LICENSE.txt`. After setting `URL` to
+that selected HTTPS URL (not a mutable latest alias):
 
 ```sh
-taf-kaiju kaiju \
-  -t "$PWD/kaiju-db/nodes.dmp" \
-  -f "$PWD/kaiju-db/kaiju_db_viruses.fmi" \
-  -i reads_R1.fastq.gz \
-  -j reads_R2.fastq.gz \
-  -o sample.kaiju.tsv \
-  -z 8
+mkdir acquisition
+cd acquisition
+curl --fail --location --proto '=https' --proto-redir '=https' --continue-at - --output selected.tgz "$URL"
+# Supply reviewed RESOURCE_LICENSE.txt before pinning.
+taf-kaiju kaiju-db pin --archive selected.tgz --url "$URL" --id chosen-family --resource-version YYYY-MM-DD --license-file RESOURCE_LICENSE.txt --rights-reviewed > recipe.json
 ```
 
-Use MEM mode or disable the default SEG low-complexity filter:
+Pin requires top-level regular `nodes.dmp`, `names.dmp` and exactly one FMI.
+Selected symlinks, duplicate names, traversal and sparse members are rejected.
+It reads/hashes the archive without executing it. Check any separately published
+provider checksum before first pin when available. Custom bundles may contain
+the same three files from a recorded custom build. Pin proves byte identity,
+not biological correctness or semantic validity of an arbitrary FMI.
+
+Schema `taffish.kaiju.recipe.v1` records `id`, `version`, `source`, `license`,
+and `files` entries with `name`, HTTPS `url`, exact `size`, `sha256`, and
+selected `extract` names. Archive names are local input names, not inferred from
+URLs. Transfer the recipe with its review. Use a new version for changed resources.
+
+Create an installer-owned root, not group/world writable:
 
 ```sh
-taf-kaiju kaiju -a mem -X \
-  -t "$PWD/kaiju-db/nodes.dmp" \
-  -f "$PWD/kaiju-db/kaiju_db_viruses.fmi" \
-  -i reads.fastq.gz -o sample.mem.tsv
+DBROOT="$HOME/.local/share/taffish/databases/kaiju"
+mkdir -p "$DBROOT"
+chmod 755 "$DBROOT"
 ```
 
-Create a species table and add taxon names:
+For site reuse, the administrator instead creates
+`/usr/local/share/taffish/databases/kaiju` (or a site-selected root), with
+traversable parents and owner-only writes. The helper never invokes sudo or
+creates/modifies system paths automatically. Personal Docker installs use the
+real user's UID/GID; administrator/root identity is only for an authorized site
+install. Podman keep-id preserves the caller; Apptainer uses the caller UID.
+Ordinary users cannot install into a root-owned site root.
 
-```sh
-taf-kaiju kaiju2table \
-  -t "$PWD/kaiju-db/nodes.dmp" \
-  -n "$PWD/kaiju-db/names.dmp" \
-  -r species -o sample.species.tsv sample.kaiju.tsv
+Installed help supplies all three backend commands with an actual writable bind
+to `/db-install`. Add `--source-dir .` in the acquisition directory to import
+the pinned archive without another download. Add `--dry-run` to inspect identity,
+destination and download bytes. Without `--source-dir`, the helper performs a
+resumable HTTPS download. Only the explicit member is installed, never all.
 
-taf-kaiju kaiju-addTaxonNames \
-  -t "$PWD/kaiju-db/nodes.dmp" \
-  -n "$PWD/kaiju-db/names.dmp" \
-  -i sample.kaiju.tsv -o sample.names.tsv
-```
+Install contract: private0700 download cache; exact size/SHA256; exclusive root
+lock; unique staging; no-clobber same-filesystem atomic promotion; member0755/
+files0644; full `manifest.json` inventory and hashed `READY`. Verified archives
+are deleted from the private cache after promotion. Reinstall verifies an
+identical member and rejects corruption/different recipes instead of replacing.
+`verify --id ID--DATE` fully rehashes one member; `list` verifies visible partial
+inventory without selecting a member. These work read-only but may take time.
+Disk must fit compressed plus unpacked files and `--reserve-gb` (default10GiB);
+space is checked before download and each extraction. RAM is a separate concern.
 
-Create Krona input:
+Repeat the same install after interruption to resume its private partial file.
+Checksum failures retain the exact partial for inspection. There is no force.
+Never remove an active lock. After abnormal termination, an administrator must
+confirm no installer is running and quarantine only the stale lock/stage or
+damaged member. Ordinary users must not chmod/chown shared resources.
 
-```sh
-taf-kaiju kaiju2krona \
-  -t "$PWD/kaiju-db/nodes.dmp" \
-  -n "$PWD/kaiju-db/names.dmp" \
-  -i sample.kaiju.tsv -o sample.krona.tsv
-```
+## Backend Usage and Capability Matrix
 
-## Command Mode
+| Capability | Docker | Podman | Apptainer |
+| --- | --- | --- | --- |
+| Native architecture | amd64, arm64 | matching Linux architecture | matching native Linux, read-only SIF |
+| Select backend | `TAFFISH_CONTAINER_BACKEND=docker` | `...=podman` | `...=apptainer` |
+| Optional writable install | `-v ROOT:/db-install`, installer UID | `-v ROOT:/db-install`, keep-id | `--bind ROOT:/db-install`, caller UID |
+| Read-only reuse | `-v ROOT:/db:ro` | `-v ROOT:/db:ro` | `--bind ROOT:/db:ro` |
 
-The default command is `kaiju`, so option-leading classification arguments can
-also be passed directly:
+Put the optional mount in `TAFFISH_DOCKER_RUN_ARGS`, `TAFFISH_PODMAN_RUN_ARGS`
+or `TAFFISH_APPTAINER_RUN_ARGS`; help gives complete commands. These are per-run/
+site policy, not hidden app requirements. No GPU/port/platform emulation switches
+are intrinsic. Apptainer requires Linux, not macOS itself. ARM64 Apptainer is
+not separately validated in this release; use a matching Linux runner.
 
-```sh
-taf-kaiju -t nodes.dmp -f database.fmi -i reads.fastq.gz
-taf-kaiju -- -h
-```
+There is deliberately **no automatic discovery or selection**: databases have
+different biological scopes and Kaiju already accepts explicit `-f/-t/-n` paths.
+These paths are the resource-specific override. Disable shared-root exposure by
+unsetting the selected backend run-args variable, and use files under the working
+directory as a backend-neutral fallback. Missing resources never trigger a
+download or another member. Users only read site resources; results/scratch go
+to their working directory and /tmp, never the image or shared database.
 
-Use automatic command mode for every other packaged executable:
+## Boundaries and Troubleshooting
 
-```sh
-taf-kaiju kaiju-multi -h
-taf-kaiju kaijup -h
-taf-kaiju kaijux -h
-taf-kaiju kaiju-makedb --help
-taf-kaiju kaiju2table -h
-```
+`kaiju-makedb` remains the original rolling-source builder. Run it explicitly in
+a fresh writable directory, never inside an installed member. URLs/content,
+intermediate size and converter RAM may change; some upstream paths use HTTP.
+It is not the fixed HTTPS recipe installer. Preserve source/build provenance
+before sharing. This release does not download/certify full NR/RefSeq databases:
+the trailing-slash fix is executed on synthetic assembly rows; the added viral
+branch is source-contract audited. Do not mix unrelated taxonomy and indexes.
 
-## Inputs And Outputs
+- Missing files: check real binds and exact paths. Marker env vars do not create
+  mounts or make a read-only SIF writable.
+- Permission failure: installer must own its root; readers need read/search
+  permission through site parents. Keep actual read-only binds for analysis.
+- Corruption: verify/reinstall fail closed; have the administrator inspect the
+  exact member/cache before creating a replacement version.
+- Memory exhaustion: provision enough RAM or choose a scientifically suitable
+  smaller resource; tiny success does not imply all database sizes fit.
 
-`kaiju` and `kaiju-multi` accept FASTA or FASTQ nucleotide reads, including
-gzip-compressed files. Paired files must contain reads in the same order and
-with matching names. The `-p` option treats input as protein sequences.
+## Provenance, Size and Testing
 
-Default output is tab-separated, one record per read or read pair. The first
-three columns are classification status (`C` or `U`), read name, and NCBI taxon
-id. `-v` appends score/match details. Summary and name helpers require taxonomy
-files from the same database snapshot.
+Source tag `v1.10.3`, commit `a36cd21d1c04d17a4f7e3744c17e8e8508e69e3b`,
+SHA256 `712dc0b73944349ddf0e49b61e780864244e901ca89cd5c80180a97130a724d5`.
+These are recorded in `/opt/kaiju/share/doc/kaiju/source.txt`.
+The pinned Debian12-slim multi-stage build excludes compilers/build trees/source
+archives; apt caches are removed in-layer. Build-time checks use stable help,
+ldd and real tiny indexing/search, not rendered man pages or browser assertions.
 
-## Resources, Databases, And Platform
+Native Linux amd64 (xjp) and arm64 (local Docker/Podman Linux VMs) builds pass.
+Every one of the 39 command-existence probes and nine exact manifest tests passes
+in independent offline containers: Docker/Podman normal and read-only roots on
+both architectures, plus actual read-only Apptainer SIF on native x86_64 Linux
+(432 exact invocations). The SIF was generated from the same amd64 OCI contents.
+Each of those five backend/platform runtime combinations passes 30 real-wrapper
+checks, including actual binds, paths with spaces, installation, read-only reuse,
+missing-resource failures and unchanged host inputs. ARM64 Apptainer is not
+separately validated; this is not an untested backend or an emulation claim.
 
-Native images are built for `linux/amd64` and `linux/arm64`. Classification is
-CPU-only and supports threads through `-z`; database construction uses `-t`.
-No GPU, MPI runtime or service is required.
+Administrator-once mechanics pass with a root-owned synthetic database in a
+private xjp test directory: three ordinary-user backends and another numeric UID
+can read, writes are rejected, and the temporary root is cleaned. This does not
+claim a full production/site database installation. HTTPS interruption/Range
+resumption and original exit-37 failure diagnostics pass on all three x86_64
+backends and additionally ARM64 Docker. Initial harness errors (taf CLI supplied
+instead of taffish core, and treating upstream help exit1 as failure) are retained
+in evidence; corrected successor runs pass without runtime/threshold changes.
 
-The build makes upstream's required signed-`char` BWT semantics explicit with
-`-fsigned-char`. This keeps the original algorithm while avoiding AArch64's
-different compiler default; native tiny index construction and classification
-are tested on both architectures.
+Uncompressed image size: amd64 177,234,360 bytes; arm64 203,867,853 bytes.
+Kaiju is about3.3/3.4MiB, Python stdlib27/29MiB, legal docs2.9MiB; apt lists and
+temporary build directory are4KiB each. CPython stdlib bytecode is retained as
+read-only runtime content, not a pip/download/build cache. No compiler, sysroot
+or development headers remain. Native build-time tiny tests remain lightweight.
 
-RAM is dominated by the selected `.fmi` index. The official download page
-currently lists examples from about 0.5 GB RAM for the virus index to more than
-200 GB for large NR indexes. Database construction can need substantially more
-RAM and temporary disk than classification.
+No backend exception is required. Synthetic tests cover nucleotide/protein/
+gzip/multi searches, reports, index-only/GBK, trailing-slash URLs and resource
+failure paths. These are runtime evidence, not production scientific qualification.
 
-## Boundaries And Troubleshooting
+## License and Citation
 
-- `kaiju-makedb` downloads from NCBI and other upstream providers; ordinary
-  classification is offline once the database is present.
-- Database contents and taxonomy snapshots are scientific inputs. Do not mix
-  an `.fmi` file with unrelated `nodes.dmp` or `names.dmp` snapshots.
-- `kaiju-convertNR` and `kaiju-convertRefSeq` are production-scale converters
-  that reserve memory for very large accession maps; their help and linkage are
-  tested, but smoke does not allocate their production-scale maps.
-- `kaiju2krona` does not generate HTML by itself. Use Krona's `ktImportText`
-  separately.
-- If a path is outside the working directory visible to Docker, Podman or
-  Apptainer, mount that host directory explicitly before passing the path.
+Packaging/helper code: Apache-2.0. Kaiju: GPL-3.0-or-later; zstr: MIT; NCBI BLAST
+core retains its public-domain notice. Full notices are under
+`/opt/kaiju/share/licenses/kaiju` and `/usr/share/doc`.
+Resource terms are independent: [NCBI molecular-data policy](https://www.ncbi.nlm.nih.gov/home/about/policies/)
+places no NCBI restrictions on data use/distribution while noting possible
+submitter rights. Review other providers separately; software GPL does not grant
+universal database rights. Record permissions/attribution in each recipe.
 
-## Testing
-
-The offline smoke suite independently checks:
-
-- all packaged command interfaces, companion data and dynamic libraries
-- exact source provenance and the upstream `1.10.1` runtime-banner mismatch
-- direct tiny index construction and offline `kaiju-makedb --index-only`
-- nucleotide, protein, gzip and multi-sample classification
-- the release-specific `-X` path in `kaiju`, `kaijup` and `kaijux`
-- table, Krona-input, taxon-name and output-merge helpers
-- compressed GenBank conversion through Perl `IO::Uncompress`
-
-The tiny synthetic smoke index is only a packaging fixture. Smoke does not
-download a production database or establish scientific accuracy on real data.
-
-## License And Citation
-
-TAFFISH packaging files are licensed under Apache-2.0. Upstream Kaiju is
-GPL-3.0-or-later. The image retains the upstream GPL text, the bundled `zstr`
-MIT license, and the NCBI BLAST core public-domain notice.
-
-Cite:
-
-> Menzel P, Ng KL, Krogh A. Fast and sensitive taxonomic classification for
-> metagenomics with Kaiju. Nature Communications. 2016;7:11257.
-> https://doi.org/10.1038/ncomms11257
-
-Also record and cite the database source and snapshot used for classification.
-
-## Upstream Resources
-
-- [Project homepage](https://bioinformatics-centre.github.io/kaiju/)
-- [Official release](https://github.com/bioinformatics-centre/kaiju/releases/tag/v1.10.2)
-- [Upstream README](https://github.com/bioinformatics-centre/kaiju/blob/v1.10.2/README.md)
-- [Quickstart](https://github.com/bioinformatics-centre/kaiju/blob/v1.10.2/Quickstart.md)
-- [Pre-built indexes](https://bioinformatics-centre.github.io/kaiju/downloads.html)
+Cite Menzel, Ng and Krogh (2016), *Fast and sensitive taxonomic classification
+for metagenomics with Kaiju*, Nature Communications7:11257,
+[doi:10.1038/ncomms11257](https://doi.org/10.1038/ncomms11257), PMID27071849,
+plus the actual reference database used.

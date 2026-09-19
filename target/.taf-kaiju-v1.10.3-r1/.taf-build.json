@@ -1,0 +1,6 @@
+{
+  "artifact": "taf-kaiju-v1.10.3-r1",
+  "schema": "taffish.build/v1",
+  "source_sha256": "2e826d28c859a440b69ce70c1af1e2ea4b0c50a667618ce8ec5c575b1c4f8d12",
+  "wrapper_sha256": "5dfa03a8e17e428fed3a2d8b4ed8a29f7891bccdc46f99ded5d7d0a617f973c2"
+}
